@@ -8,10 +8,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Button } from "@/components/ui/button";
 
 
 
-export default async function Home() {
+export default async function UsersPage() {
 
   const { success, data: users, error } = await getAllUsers();
 
@@ -25,7 +26,12 @@ export default async function Home() {
 
  return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Korisnici</h1>
+      <h1 className="text-2xl font-bold">Korisnici</h1>
+
+      <div className="flex justify-end mb-4">
+        <Button>Dodaj</Button>
+      </div>
+      
       <Table>
         <TableHeader>
           <TableRow>
