@@ -37,7 +37,7 @@ export async function getAllUsers() {
 // ----------------------------------------------------------------
 // UPDATE — Ažuriranje korisnika po ID-u
 // ----------------------------------------------------------------
-export async function updateUser(id: number, data: UpdateUserInput) {
+export async function updateUser(id: string, data: UpdateUserInput) {
   try {
     const [updatedUser] = await db
       .update(users)
@@ -85,7 +85,7 @@ export async function createUser(data: CreateUserInput) {
 // ----------------------------------------------------------------
 // READ ONE — Dohvat korisnika po ID-u
 // ----------------------------------------------------------------
-export async function getUserById(id: number) {
+export async function getUserById(id: string) {
   try {
     const [user] = await db.select().from(users).where(eq(users.id, id));
 
@@ -125,7 +125,7 @@ export async function getUserByEmail(email: string) {
 // ----------------------------------------------------------------
 // DELETE — Brisanje korisnika po ID-u
 // ----------------------------------------------------------------
-export async function deleteUser(id: number) {
+export async function deleteUser(id: string) {
   try {
     const [deletedUser] = await db
       .delete(users)
@@ -140,5 +140,24 @@ export async function deleteUser(id: number) {
   } catch (error) {
     console.error("Greška pri brisanju korisnika:", error);
     return { success: false, error: "Nije moguće obrisati korisnika." };
+  }
+}
+
+
+export async function checkEmailExists(email: string, excludeId: string) {
+  try {
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+
+    if (!existingUser || existingUser.id === excludeId) {
+      return { success: true, exists: false };
+    }
+
+    return { success: true, exists: true };
+  } catch (error) {
+    console.error("Greška pri provjeri emaila:", error);
+    return { success: false, exists: false, error: "Greška pri provjeri emaila." };
   }
 }
