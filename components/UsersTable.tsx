@@ -10,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,10 +20,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2  } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2 } from "lucide-react";
 import { deleteUser } from "@/server/users.actions";
-import EditUserDialog from "./EditUserDialog";
+import EditUserDialog from "@/components/EditUserDialog";
+import UsersSearch from "@/components/UsersSearch";
+import { Button } from "@/components/ui/button";
+import AddUserDialog from "./AddUserDialog";
 
 type User = {
   id: string;
@@ -35,13 +36,16 @@ type User = {
 };
 
 type SortDirection = "asc" | "desc" | null;
+type SearchCriteria = "name" | "email";
 
 export default function UsersTable({ users }: { users: User[] }) {
   const router = useRouter();
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchCriteria, setSearchCriteria] = useState<SearchCriteria>("name");
 
   const handleNameSort = () => {
     setSortDirection((prev) => {
@@ -51,13 +55,12 @@ export default function UsersTable({ users }: { users: User[] }) {
     });
   };
 
-const handleDeleteClick = (user: User) => {
+  const handleDeleteClick = (user: User) => {
     setSelectedUser(user);
   };
 
   const handleDeleteConfirm = async () => {
     if (!selectedUser) return;
-
     try {
       setIsDeleting(true);
 
@@ -66,12 +69,10 @@ const handleDeleteClick = (user: User) => {
       // Ako postoje, prikazati odgovarajuću poruku i prekinuti brisanje.
 
       const result = await deleteUser(selectedUser.id);
-
       if (!result.success) {
         console.error("Greška pri brisanju:", result.error);
         return;
       }
-
       router.refresh();
     } catch (error) {
       console.error("Greška pri brisanju korisnika:", error);
@@ -81,7 +82,20 @@ const handleDeleteClick = (user: User) => {
     }
   };
 
-  const sortedUsers = [...users].sort((a, b) => {
+  const handleSearch = (term: string, criteria: SearchCriteria) => {
+    setSearchTerm(term);
+    setSearchCriteria(criteria);
+  };
+
+  // Filtriranje
+  const filteredUsers = users.filter((user) => {
+    if (!searchTerm) return true;
+    const value = user[searchCriteria].toLowerCase();
+    return value.includes(searchTerm.toLowerCase());
+  });
+
+  // Sortiranje
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
     if (sortDirection === "asc") return a.name.localeCompare(b.name);
     if (sortDirection === "desc") return b.name.localeCompare(a.name);
     return 0;
@@ -95,6 +109,12 @@ const handleDeleteClick = (user: User) => {
 
   return (
     <>
+      {/* Toolbar */}
+      <div className="flex justify-between items-center mb-4">
+        <UsersSearch onSearch={handleSearch} />
+        <AddUserDialog />
+      </div>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -115,45 +135,53 @@ const handleDeleteClick = (user: User) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedUsers.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>{user.name}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>{user.username}</TableCell>
-              <TableCell>
-                {user.createdAt
-                  ? new Date(user.createdAt).toLocaleDateString("hr-HR")
-                  : "-"}
-              </TableCell>
-
-              <TableCell className="text-center">
-                <button 
-                  onClick={() => setEditUser(user)} 
-                  className="text-gray-500 hover:text-blue-600 transition-colors">
-                  <Pencil size={16} />
-                </button>
-              </TableCell>
-
-              <TableCell className="text-center">
-                <button
-                  onClick={() => handleDeleteClick(user)}
-                  className="text-gray-500 hover:text-red-600 transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
+          {sortedUsers.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center text-gray-500 py-6">
+                Nema korisnika koji odgovaraju kriteriju pretrage.
               </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            sortedUsers.map((user) => (
+              <TableRow key={user.id}>
+                <TableCell>{user.name}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>{user.username}</TableCell>
+                <TableCell>
+                  {user.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString("hr-HR")
+                    : "-"}
+                </TableCell>
+                <TableCell className="text-center">
+                  <button
+                    onClick={() => setEditUser(user)}
+                    className="text-gray-500 hover:text-blue-600 transition-colors"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                </TableCell>
+                <TableCell className="text-center">
+                  <button
+                    onClick={() => handleDeleteClick(user)}
+                    className="text-gray-500 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
 
+      {/* Delete dialog */}
       <AlertDialog
         open={!!selectedUser}
         onOpenChange={(open) => !open && setSelectedUser(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>UPOZORENJE !</AlertDialogTitle>
+            <AlertDialogTitle>Jeste li sigurni?</AlertDialogTitle>
             <AlertDialogDescription>
               Jeste li sigurni da korisnika{" "}
               <span className="font-semibold text-foreground">
@@ -176,13 +204,15 @@ const handleDeleteClick = (user: User) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit dialog */}
       {editUser && (
-  <EditUserDialog
-    user={editUser}
-    open={!!editUser}
-    onOpenChange={(open) => !open && setEditUser(null)}
-  />
-)}
+        <EditUserDialog
+          user={editUser}
+          open={!!editUser}
+          onOpenChange={(open) => !open && setEditUser(null)}
+        />
+      )}
     </>
   );
 }

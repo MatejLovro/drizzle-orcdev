@@ -1,15 +1,4 @@
 import { getAllUsers } from "@/server/users.actions";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-
-import AddUserDialog from "@/components/AddUserDialog";
 import UsersTable from "@/components/UsersTable";
 
 
@@ -27,13 +16,8 @@ export default async function UsersPage() {
 
  return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold">Korisnici</h1>
-
-      <div className="flex justify-end mb-4">
-       <AddUserDialog />
-      </div>
-      
-     <UsersTable users={users} />
+      <h1 className="text-2xl font-bold mb-4">Korisnici</h1>
+      <UsersTable users={users} />
     </div>
   );
   
